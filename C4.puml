@@ -1,0 +1,88 @@
+@startuml MicroLivraria_ClassLayer
+'========================================================================
+' Definições iniciais
+'========================================================================
+skinparam packageStyle rectangle
+
+'========================================================================
+' Pacote Proto - Arquivos de definição dos serviços
+'========================================================================
+package "Proto" {
+  class shipping.proto {
+    <<proto>>
+    + definição do ShippingService
+  }
+  class inventory.proto {
+    <<proto>>
+    + definição do InventoryService
+  }
+}
+
+'========================================================================
+' Pacote Controller
+'========================================================================
+package "Controller" {
+  class "index.js" as ControllerIndex {
+    + app: Express
+    + rotas: GET /products, /shipping/:cep, /product/:id
+    --
+    + iniciarServidor()
+  }
+  
+  class "shipping.js" as ControllerShipping {
+    + client: ShippingService
+    --
+    + carregarShippingClient(): ShippingService
+  }
+  
+  class "inventory.js" as ControllerInventory {
+    + client: InventoryService
+    --
+    + carregarInventoryClient(): InventoryService
+  }
+}
+
+' Ligações internas do Controller
+ControllerIndex --> ControllerShipping : "importa e usa"
+ControllerIndex --> ControllerInventory : "importa e usa"
+ControllerShipping ..> shipping.proto : "carrega"
+ControllerInventory ..> inventory.proto : "carrega"
+
+'========================================================================
+' Pacote Inventory Service
+'========================================================================
+package "Inventory Service" {
+  class "index_inventory.js" as InventoryIndex {
+    + métodos: SearchAllProducts(), SearchProductByID()
+    --
+    + iniciarServidorGRPC()
+  }
+  
+  class "products.json" as ProductsData {
+    <<arquivo JSON>>
+    + lista de produtos
+  }
+}
+
+' Associação no Inventory Service
+InventoryIndex --> ProductsData : "lê dados de"
+
+'========================================================================
+' Pacote Shipping Service
+'========================================================================
+package "Shipping Service" {
+  class "index_shipping.js" as ShippingIndex {
+    + método: GetShippingRate()
+    --
+    + iniciarServidorGRPC()
+  }
+}
+
+'========================================================================
+' Relações entre Serviços via GRPC
+'========================================================================
+' O Controller consome os serviços Inventory e Shipping via GRPC
+ControllerIndex ..> InventoryIndex : "consulta via GRPC"
+ControllerIndex ..> ShippingIndex : "consulta via GRPC"
+
+@enduml
